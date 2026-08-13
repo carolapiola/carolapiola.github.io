@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' app: data: blob: https:; script-src 'self' app: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' app: http://127.0.0.1:* ws://127.0.0.1:* https: data: blob:; worker-src 'self' app: blob:; media-src 'self' blob: data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="Carola Piola" />
+    <title>Carola Piola</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <textarea
+        id="speech-input"
+        lang="es"
+        aria-label="Texto para hablar"
+        placeholder="Escribe aquí…"
+        autocomplete="off"
+        autocapitalize="sentences"
+        spellcheck="true"
+        autofocus
+      ></textarea>
+
+      <footer aria-live="polite">
+        <div class="status-copy">
+          <span id="status-dot" class="status-dot loading" aria-hidden="true"></span>
+          <span id="status-text">Preparando a Dora…</span>
+        </div>
+        <div class="speech-settings" aria-label="Configuración de lectura">
+          <div class="stepper">
+            <span>Palabras</span>
+            <button type="button" data-setting="wordCount" data-direction="-1" tabindex="-1" aria-label="Menos palabras">−</button>
+            <output id="word-count"></output>
+            <button type="button" data-setting="wordCount" data-direction="1" tabindex="-1" aria-label="Más palabras">+</button>
+          </div>
+          <div class="stepper">
+            <span>Pausa</span>
+            <button type="button" data-setting="cooldownMs" data-direction="-1" tabindex="-1" aria-label="Reducir pausa">−</button>
+            <output id="cooldown-ms"></output>
+            <button type="button" data-setting="cooldownMs" data-direction="1" tabindex="-1" aria-label="Aumentar pausa">+</button>
+          </div>
+        </div>
+        <div class="project-copy">
+          <span class="engine-copy">Dora · Español · Kokoro 82M</span>
+          <span>Creado por Carola Piola · CC0</span>
+        </div>
+      </footer>
+      <div id="progress" class="progress" aria-hidden="true"><span></span></div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

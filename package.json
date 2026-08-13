@@ -1,0 +1,57 @@
+{
+  "name": "carola-piola",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-time Spanish text-to-speech with Kokoro 82M and WebGPU",
+  "author": "Carola Piola",
+  "license": "CC0-1.0",
+  "homepage": "https://carolapiola.github.io/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/carolapiola/carolapiola.github.io.git"
+  },
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -s first \"vite --host 127.0.0.1 --port 5173 --strictPort\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "package": "npm run build && electron-builder"
+  },
+  "devDependencies": {
+    "@huggingface/transformers": "4.2.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "10.0.0",
+    "electron": "43.2.0",
+    "electron-builder": "26.15.6",
+    "ephone": "^1.0.2",
+    "vite": "8.1.5",
+    "wait-on": "9.0.3"
+  },
+  "build": {
+    "appId": "com.carolapiola.tts",
+    "productName": "Carola Piola",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility"
+    },
+    "extraResources": [
+      {
+        "from": "node_modules/ephone/COPYING",
+        "to": "licenses/ephone-GPL-3.0.txt"
+      }
+    ]
+  }
+}
