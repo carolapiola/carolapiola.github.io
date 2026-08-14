@@ -1,5 +1,8 @@
 const { app, BrowserWindow, net, protocol, shell } = require("electron");
+const { createReadStream } = require("node:fs");
+const { stat } = require("node:fs/promises");
 const path = require("node:path");
+const { Readable } = require("node:stream");
 const { pathToFileURL } = require("node:url");
 
 protocol.registerSchemesAsPrivileged([
@@ -24,6 +27,72 @@ function isInside(parent, candidate) {
   return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
 }
 
+function parseByteRange(value, size) {
+  const match = /^bytes=(\d*)-(\d*)$/u.exec(value ?? "");
+  if (!match || (!match[1] && !match[2])) return undefined;
+
+  let start;
+  let end;
+  if (!match[1]) {
+    const suffixLength = Number(match[2]);
+    if (!Number.isSafeInteger(suffixLength) || suffixLength < 1) return null;
+    start = Math.max(0, size - suffixLength);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] ? Number(match[2]) : size - 1;
+  }
+
+  if (
+    !Number.isSafeInteger(start)
+    || !Number.isSafeInteger(end)
+    || start < 0
+    || end < start
+    || start >= size
+  ) return null;
+
+  return { start, end: Math.min(end, size - 1) };
+}
+
+async function serveModelFile(request, filePath) {
+  let fileStats;
+  try {
+    fileStats = await stat(filePath);
+  } catch {
+    return new Response("Not found", { status: 404 });
+  }
+  if (!fileStats.isFile()) return new Response("Not found", { status: 404 });
+
+  const range = parseByteRange(request.headers.get("range"), fileStats.size);
+  if (range === null) {
+    return new Response(null, {
+      status: 416,
+      headers: { "Content-Range": `bytes */${fileStats.size}` },
+    });
+  }
+
+  const start = range?.start ?? 0;
+  const end = range?.end ?? fileStats.size - 1;
+  const contentLength = end - start + 1;
+  const extension = path.extname(filePath).toLowerCase();
+  const contentType = extension === ".json"
+    ? "application/json; charset=utf-8"
+    : "application/octet-stream";
+  const headers = {
+    "Accept-Ranges": "bytes",
+    "Content-Length": String(contentLength),
+    "Content-Type": contentType,
+  };
+
+  if (range) headers["Content-Range"] = `bytes ${start}-${end}/${fileStats.size}`;
+  if (request.method === "HEAD") {
+    return new Response(null, { status: range ? 206 : 200, headers });
+  }
+
+  const body = Readable.toWeb(createReadStream(filePath, { start, end }));
+  return new Response(body, { status: range ? 206 : 200, headers });
+}
+
 function registerAppProtocol() {
   const distRoot = path.join(app.getAppPath(), "dist");
   const modelRoot = app.isPackaged
@@ -44,6 +113,7 @@ function registerAppProtocol() {
       return new Response("Not found", { status: 404 });
     }
 
+    if (servesModel) return serveModelFile(request, filePath);
     return net.fetch(pathToFileURL(filePath).toString());
   });
 }

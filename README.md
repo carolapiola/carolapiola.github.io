@@ -36,7 +36,7 @@ npm run package:mac    # macOS Apple Silicon, .zip con .app
 npm run package:linux  # Linux x64, AppImage
 ```
 
-El workflow “Package desktop apps” compila los tres sistemas en sus runners nativos al ejecutarlo manualmente o al publicar un tag `v*`. Cada push a `main` sigue compilando y publicando automáticamente la versión web mediante GitHub Pages.
+El workflow “Package desktop apps” compila los tres sistemas en sus runners nativos al ejecutarlo manualmente o al publicar un tag `v*`. Los tags crean o actualizan automáticamente su GitHub Release y adjuntan el `.exe`, el `.zip` de macOS y el `.AppImage` usando el `GITHUB_TOKEN` del workflow. Cada push a `main` sólo compila y publica la versión web mediante GitHub Pages.
 
 ## Motor de voz
 
