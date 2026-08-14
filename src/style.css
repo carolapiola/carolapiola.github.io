@@ -279,6 +279,14 @@ dialog .dictionary-list {
   white-space: nowrap;
 }
 
+.stepper.disabled {
+  opacity: 0.42;
+}
+
+.stepper button:disabled {
+  cursor: default;
+}
+
 .stepper > span {
   color: #958f86;
 }

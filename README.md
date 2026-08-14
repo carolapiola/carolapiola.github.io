@@ -4,9 +4,13 @@ TTS en tiempo real creado por **Carola Piola**.
 
 Web: [carolapiola.github.io](https://carolapiola.github.io/)
 
-Una app de escritorio mínima para hablar mientras escribes. Usa Kokoro 82M, la voz española `ef_dora` y WebGPU. El tamaño de cada grupo y el cooldown toman sus valores iniciales de `src/speech-settings.js` y se pueden ajustar desde la barra inferior. Enter envía el texto pendiente inmediatamente. El cooldown solo envía palabras terminadas con espacio o puntuación, por lo que nunca corta una palabra que todavía se está escribiendo. Cada clip espera al anterior: nunca interrumpe el audio que ya está sonando.
+Una app de escritorio mínima para hablar mientras escribes. Usa Kokoro 82M, la voz española `ef_dora` y WebGPU. El tamaño de cada grupo y el cooldown toman sus valores iniciales de `src/speech-settings.js` y se pueden ajustar desde la barra inferior. Enter envía el texto pendiente inmediatamente y agrega un salto de línea en ambos modos. El cooldown solo envía palabras terminadas con espacio o puntuación, por lo que nunca corta una palabra que todavía se está escribiendo. Cada clip espera al anterior: nunca interrumpe el audio que ya está sonando.
 
 La autocorrección opcional usa Hunspell con el diccionario español de Argentina y un corpus de frecuencia offline para descartar sugerencias dudosas. Corrige cada palabra al terminarla, recompone acentos `´` escritos antes o después de la vocal y aplica tildes únicamente cuando hay una alternativa inequívoca; no envía texto a ningún servicio externo. El modal “Diccionario” permite registrar vocabulario propio: esas palabras pasan a considerarse válidas y también se usan como sugerencias para errores parecidos. El diccionario personal, el estado del autocorrector, el tamaño de los chunks y el cooldown persisten juntos en `localStorage`.
+
+El switch “Modo manual” desactiva el envío por cantidad de palabras y por cooldown. En ese modo, cada Enter encola todo el texto pendiente como una sola frase y agrega un salto de línea real al textarea. El modo elegido también persiste en `localStorage`.
+
+Una línea manual que comienza con `!` usa temporalmente el comportamiento automático, con la cantidad de palabras y el cooldown configurados. El marcador no se pronuncia ni cuenta como palabra. Enter encola lo que reste, crea la línea siguiente y restablece el modo manual.
 
 ## Ejecutar
 

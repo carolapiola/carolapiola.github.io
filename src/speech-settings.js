@@ -11,3 +11,5 @@ export const DEFAULT_SPEECH_SETTINGS = Object.freeze(
     ]),
   ),
 );
+
+export const DEFAULT_MANUAL_MODE = false;

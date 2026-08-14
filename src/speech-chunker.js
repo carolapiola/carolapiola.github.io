@@ -35,7 +35,7 @@ export class SpeechChunker {
     this.timer = undefined;
   }
 
-  update(value) {
+  update(value, { automatic = true } = {}) {
     this.#cancelCooldown();
 
     if (!value.startsWith(this.value.slice(0, this.spokenUntil))) {
@@ -47,6 +47,7 @@ export class SpeechChunker {
 
     this.value = value;
     this.spokenUntil = Math.min(this.spokenUntil, value.length);
+    if (!automatic) return;
     this.#drainCompleteGroups();
     this.#scheduleCooldown();
   }

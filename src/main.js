@@ -7,6 +7,7 @@ import {
   SpanishAutocorrect,
 } from "./spanish-autocorrect.js";
 import {
+  DEFAULT_MANUAL_MODE,
   DEFAULT_SPEECH_SETTINGS,
   SPEECH_SETTING_DEFINITIONS,
 } from "./speech-settings.js";
@@ -20,6 +21,7 @@ const progressBar = progress.querySelector("span");
 const wordCountOutput = document.querySelector("#word-count");
 const cooldownOutput = document.querySelector("#cooldown-ms");
 const autocorrectToggle = document.querySelector("#autocorrect-toggle");
+const manualModeToggle = document.querySelector("#manual-mode-toggle");
 const openDictionaryButton = document.querySelector("#open-dictionary");
 const closeDictionaryButton = document.querySelector("#close-dictionary");
 const dictionaryDialog = document.querySelector("#dictionary-dialog");
@@ -50,6 +52,9 @@ for (const [key, definition] of Object.entries(SPEECH_SETTING_DEFINITIONS)) {
 let autocorrectEnabled = typeof preferences.autocorrectEnabled === "boolean"
   ? preferences.autocorrectEnabled
   : DEFAULT_AUTOCORRECT_ENABLED;
+let manualMode = typeof preferences.manualMode === "boolean"
+  ? preferences.manualMode
+  : DEFAULT_MANUAL_MODE;
 const customDictionary = new Set(
   (Array.isArray(preferences.customDictionary)
     ? preferences.customDictionary
@@ -64,6 +69,7 @@ function persistPreferences() {
     localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({
       speech: settings,
       autocorrectEnabled,
+      manualMode,
       customDictionary: [...customDictionary],
     }));
   } catch {
@@ -80,6 +86,23 @@ let audioContext;
 let composing = false;
 let previousText = textarea.value;
 let compositionStartText = previousText;
+let manualLineAutomatic = false;
+
+function speechValue() {
+  return textarea.value.replace(/(^|\n)!/gu, "$1 ");
+}
+
+function detectManualLineOverride() {
+  if (!manualMode || manualLineAutomatic) return;
+  const lineStart = textarea.value.lastIndexOf("\n") + 1;
+  manualLineAutomatic = textarea.value[lineStart] === "!";
+}
+
+function updateChunker() {
+  chunker.update(speechValue(), {
+    automatic: !manualMode || manualLineAutomatic,
+  });
+}
 
 function changedRange(before, after) {
   const limit = Math.min(before.length, after.length);
@@ -141,7 +164,12 @@ function refreshQueueStatus() {
   } else if (generationState.generating || generationState.queued > 0) {
     setStatus("Preparando la siguiente frase…", "working");
   } else {
-    setStatus(`Listo · cada ${settings.wordCount} palabras o pulsa Enter`, "ready");
+    setStatus(
+      manualMode
+        ? "Listo · <enter> habla y crea una línea nueva"
+        : `Listo · cada ${settings.wordCount} palabras o pulsa Enter`,
+      "ready",
+    );
   }
 }
 
@@ -185,7 +213,8 @@ textarea.addEventListener("input", () => {
   }
   autocorrectRange(previousText);
   previousText = textarea.value;
-  chunker.update(textarea.value);
+  detectManualLineOverride();
+  updateChunker();
 });
 
 textarea.addEventListener("compositionstart", () => {
@@ -197,13 +226,19 @@ textarea.addEventListener("compositionend", () => {
   composing = false;
   autocorrectRange(compositionStartText);
   previousText = textarea.value;
-  chunker.update(textarea.value);
+  detectManualLineOverride();
+  updateChunker();
 });
 
 function renderSettings() {
   wordCountOutput.value = String(settings.wordCount);
   cooldownOutput.value = `${settings.cooldownMs} ms`;
   autocorrectToggle.setAttribute("aria-checked", String(autocorrectEnabled));
+  manualModeToggle.setAttribute("aria-checked", String(manualMode));
+  document.querySelectorAll("[data-setting]").forEach((button) => {
+    button.disabled = manualMode;
+    button.closest(".stepper").classList.toggle("disabled", manualMode);
+  });
   refreshQueueStatus();
 }
 
@@ -273,6 +308,16 @@ autocorrectToggle.addEventListener("click", () => {
   focusTextarea();
 });
 
+manualModeToggle.addEventListener("click", () => {
+  manualMode = !manualMode;
+  manualLineAutomatic = false;
+  detectManualLineOverride();
+  updateChunker();
+  persistPreferences();
+  renderSettings();
+  focusTextarea();
+});
+
 document.querySelectorAll("[data-setting]").forEach((button) => {
   button.addEventListener("click", () => {
     const key = button.dataset.setting;
@@ -292,11 +337,12 @@ document.querySelectorAll("[data-setting]").forEach((button) => {
 textarea.addEventListener("keydown", (event) => {
   unlockAudio();
   if (event.key === "Enter" && !event.isComposing) {
-    event.preventDefault();
     autocorrectRange(previousText, { forceLast: true });
     previousText = textarea.value;
-    chunker.update(textarea.value);
+    detectManualLineOverride();
+    updateChunker();
     chunker.flush();
+    if (manualMode) manualLineAutomatic = false;
   } else if (event.key === "Tab") {
     event.preventDefault();
   }
