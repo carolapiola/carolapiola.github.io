@@ -2,6 +2,11 @@ import "./style.css";
 import { AudioScheduler } from "./audio-scheduler.js";
 import { SpeechChunker } from "./speech-chunker.js";
 import {
+  DEFAULT_AUTOCORRECT_ENABLED,
+  normalizeCustomWord,
+  SpanishAutocorrect,
+} from "./spanish-autocorrect.js";
+import {
   DEFAULT_SPEECH_SETTINGS,
   SPEECH_SETTING_DEFINITIONS,
 } from "./speech-settings.js";
@@ -14,8 +19,57 @@ const progress = document.querySelector("#progress");
 const progressBar = progress.querySelector("span");
 const wordCountOutput = document.querySelector("#word-count");
 const cooldownOutput = document.querySelector("#cooldown-ms");
+const autocorrectToggle = document.querySelector("#autocorrect-toggle");
+const openDictionaryButton = document.querySelector("#open-dictionary");
+const closeDictionaryButton = document.querySelector("#close-dictionary");
+const dictionaryDialog = document.querySelector("#dictionary-dialog");
+const dictionaryForm = document.querySelector("#dictionary-form");
+const dictionaryInput = document.querySelector("#dictionary-input");
+const dictionaryCount = document.querySelector("#dictionary-count");
+const dictionaryList = document.querySelector("#custom-dictionary");
 
+const PREFERENCES_STORAGE_KEY = "carola-piola:preferences";
+
+function loadPreferences() {
+  try {
+    return JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY)) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+const preferences = loadPreferences();
 const settings = { ...DEFAULT_SPEECH_SETTINGS };
+for (const [key, definition] of Object.entries(SPEECH_SETTING_DEFINITIONS)) {
+  const value = preferences.speech?.[key];
+  if (Number.isInteger(value) && value >= definition.min && value <= definition.max) {
+    settings[key] = value;
+  }
+}
+
+let autocorrectEnabled = typeof preferences.autocorrectEnabled === "boolean"
+  ? preferences.autocorrectEnabled
+  : DEFAULT_AUTOCORRECT_ENABLED;
+const customDictionary = new Set(
+  (Array.isArray(preferences.customDictionary)
+    ? preferences.customDictionary
+    : [])
+    .map(normalizeCustomWord)
+    .filter(Boolean),
+);
+const autocorrect = new SpanishAutocorrect(customDictionary);
+
+function persistPreferences() {
+  try {
+    localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({
+      speech: settings,
+      autocorrectEnabled,
+      customDictionary: [...customDictionary],
+    }));
+  } catch {
+    // The app remains usable if storage was disabled by the browser.
+  }
+}
 
 const worker = new Worker(new URL("./tts.worker.js", import.meta.url), { type: "module" });
 let nextJobId = 1;
@@ -24,9 +78,51 @@ let generationState = { queued: 0, generating: false };
 let playbackState = { queued: 0, playing: false };
 let audioContext;
 let composing = false;
+let previousText = textarea.value;
+let compositionStartText = previousText;
+
+function changedRange(before, after) {
+  const limit = Math.min(before.length, after.length);
+  let start = 0;
+  while (start < limit && before[start] === after[start]) start += 1;
+
+  let beforeEnd = before.length;
+  let afterEnd = after.length;
+  while (
+    beforeEnd > start
+    && afterEnd > start
+    && before[beforeEnd - 1] === after[afterEnd - 1]
+  ) {
+    beforeEnd -= 1;
+    afterEnd -= 1;
+  }
+
+  return { start, end: afterEnd };
+}
+
+function autocorrectRange(before, { forceLast = false } = {}) {
+  if (!autocorrectEnabled) return;
+  const range = forceLast
+    ? { start: textarea.selectionStart, end: textarea.selectionStart }
+    : changedRange(before, textarea.value);
+  const correction = autocorrect.correctRange(
+    textarea.value,
+    range.start,
+    range.end,
+    textarea.selectionStart,
+    textarea.selectionEnd,
+    forceLast,
+  );
+
+  if (!correction.changed) return;
+  textarea.value = correction.value;
+  textarea.setSelectionRange(correction.selectionStart, correction.selectionEnd);
+}
 
 function focusTextarea() {
+  if (dictionaryDialog.open) return;
   requestAnimationFrame(() => {
+    if (dictionaryDialog.open) return;
     textarea.focus({ preventScroll: true });
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   });
@@ -83,24 +179,99 @@ const chunker = new SpeechChunker({
 
 textarea.addEventListener("input", () => {
   unlockAudio();
-  if (composing) return;
+  if (composing) {
+    previousText = textarea.value;
+    return;
+  }
+  autocorrectRange(previousText);
+  previousText = textarea.value;
   chunker.update(textarea.value);
 });
 
 textarea.addEventListener("compositionstart", () => {
   composing = true;
+  compositionStartText = previousText;
 });
 
 textarea.addEventListener("compositionend", () => {
   composing = false;
+  autocorrectRange(compositionStartText);
+  previousText = textarea.value;
   chunker.update(textarea.value);
 });
 
 function renderSettings() {
   wordCountOutput.value = String(settings.wordCount);
   cooldownOutput.value = `${settings.cooldownMs} ms`;
+  autocorrectToggle.setAttribute("aria-checked", String(autocorrectEnabled));
   refreshQueueStatus();
 }
+
+function renderDictionary() {
+  dictionaryCount.value = String(customDictionary.size);
+  dictionaryList.replaceChildren();
+  if (customDictionary.size === 0) {
+    const empty = document.createElement("span");
+    empty.className = "dictionary-empty";
+    empty.textContent = "Todavía no agregaste palabras";
+    dictionaryList.append(empty);
+    return;
+  }
+
+  for (const word of [...customDictionary].sort((left, right) => (
+    left.localeCompare(right, "es")
+  ))) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "dictionary-chip";
+    chip.tabIndex = -1;
+    chip.textContent = word;
+    chip.title = `Eliminar “${word}” del diccionario`;
+    chip.addEventListener("click", () => {
+      customDictionary.delete(word);
+      autocorrect.setCustomWords(customDictionary);
+      persistPreferences();
+      renderDictionary();
+      setStatus(`“${word}” se eliminó del diccionario personal`, "ready");
+      focusTextarea();
+    });
+    dictionaryList.append(chip);
+  }
+}
+
+openDictionaryButton.addEventListener("click", () => {
+  dictionaryDialog.showModal();
+  requestAnimationFrame(() => dictionaryInput.focus());
+});
+
+closeDictionaryButton.addEventListener("click", () => dictionaryDialog.close());
+dictionaryDialog.addEventListener("close", focusTextarea);
+dictionaryDialog.addEventListener("click", (event) => {
+  if (event.target === dictionaryDialog) dictionaryDialog.close();
+});
+
+dictionaryForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const words = dictionaryInput.value
+    .split(/[\s,;]+/u)
+    .map(normalizeCustomWord)
+    .filter(Boolean);
+  if (words.length === 0) return;
+
+  for (const word of words) customDictionary.add(word);
+  autocorrect.setCustomWords(customDictionary);
+  persistPreferences();
+  renderDictionary();
+  dictionaryInput.value = "";
+  dictionaryInput.focus();
+});
+
+autocorrectToggle.addEventListener("click", () => {
+  autocorrectEnabled = !autocorrectEnabled;
+  persistPreferences();
+  renderSettings();
+  focusTextarea();
+});
 
 document.querySelectorAll("[data-setting]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -112,6 +283,7 @@ document.querySelectorAll("[data-setting]").forEach((button) => {
       Math.max(definition.min, settings[key] + definition.step * direction),
     );
     chunker.configure(settings);
+    persistPreferences();
     renderSettings();
     focusTextarea();
   });
@@ -121,6 +293,8 @@ textarea.addEventListener("keydown", (event) => {
   unlockAudio();
   if (event.key === "Enter" && !event.isComposing) {
     event.preventDefault();
+    autocorrectRange(previousText, { forceLast: true });
+    previousText = textarea.value;
     chunker.update(textarea.value);
     chunker.flush();
   } else if (event.key === "Tab") {
@@ -183,6 +357,7 @@ worker.addEventListener("error", (event) => {
 });
 
 document.addEventListener("pointerdown", (event) => {
+  if (dictionaryDialog.open && dictionaryDialog.contains(event.target)) return;
   if (event.target !== textarea) event.preventDefault();
   focusTextarea();
 });
@@ -197,4 +372,5 @@ window.addEventListener("beforeunload", () => {
 
 focusTextarea();
 renderSettings();
+renderDictionary();
 worker.postMessage({ type: "init" });

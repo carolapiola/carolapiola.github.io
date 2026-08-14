@@ -29,6 +29,19 @@
           <span id="status-text">Preparando a Dora…</span>
         </div>
         <div class="speech-settings" aria-label="Configuración de lectura">
+          <button
+            id="autocorrect-toggle"
+            class="toggle"
+            type="button"
+            role="switch"
+            tabindex="-1"
+          >
+            <span class="toggle-track" aria-hidden="true"><span></span></span>
+            Autocorrección
+          </button>
+          <button id="open-dictionary" class="dictionary-open" type="button" tabindex="-1">
+            Diccionario <output id="dictionary-count"></output>
+          </button>
           <div class="stepper">
             <span>Palabras</span>
             <button type="button" data-setting="wordCount" data-direction="-1" tabindex="-1" aria-label="Menos palabras">−</button>
@@ -44,11 +57,39 @@
         </div>
         <div class="project-copy">
           <span class="engine-copy">Dora · Español · Kokoro 82M</span>
-          <span>Creado por Carola Piola · CC0</span>
+          <span>Creado por Carola Piola.</span>
         </div>
       </footer>
       <div id="progress" class="progress" aria-hidden="true"><span></span></div>
     </main>
+    <dialog id="dictionary-dialog" aria-labelledby="dictionary-title">
+      <div class="dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <h2 id="dictionary-title">Diccionario personal</h2>
+            <p>Estas palabras se consideran válidas y se usan para corregir errores parecidos.</p>
+          </div>
+          <button id="close-dictionary" class="dialog-close" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <form id="dictionary-form" class="dictionary-form">
+          <input
+            id="dictionary-input"
+            type="text"
+            lang="es"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="ej: falopa"
+            aria-label="Palabras para agregar al diccionario personal"
+          />
+          <button type="submit">Agregar</button>
+        </form>
+        <div
+          id="custom-dictionary"
+          class="dictionary-list"
+          aria-label="Palabras del diccionario personal"
+        ></div>
+      </div>
+    </dialog>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

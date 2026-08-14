@@ -22,9 +22,12 @@
     "@huggingface/transformers": "4.2.0",
     "concurrently": "^9.2.1",
     "cross-env": "10.0.0",
+    "dictionary-es-ar": "^2.0.0",
     "electron": "43.2.0",
     "electron-builder": "26.15.6",
     "ephone": "^1.0.2",
+    "most-common-words-by-language": "^3.0.14",
+    "nspell": "^2.1.5",
     "vite": "8.1.5",
     "wait-on": "9.0.3"
   },
@@ -51,6 +54,10 @@
       {
         "from": "node_modules/ephone/COPYING",
         "to": "licenses/ephone-GPL-3.0.txt"
+      },
+      {
+        "from": "node_modules/dictionary-es-ar/license",
+        "to": "licenses/dictionary-es-ar.txt"
       }
     ]
   }

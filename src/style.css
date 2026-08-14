@@ -81,7 +81,195 @@ footer {
   grid-row: 2;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 18px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  color: #6f6a62;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle-track {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: #bdb7ad;
+  transition: background 120ms ease;
+}
+
+.toggle-track span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(37 35 31 / 20%);
+  transition: transform 120ms ease;
+}
+
+.toggle[aria-checked="true"] .toggle-track {
+  background: #d9693f;
+}
+
+.toggle[aria-checked="true"] .toggle-track span {
+  transform: translateX(12px);
+}
+
+.dictionary-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dictionary-list {
+  flex-wrap: wrap;
+}
+
+.dictionary-open,
+.dictionary-chip {
+  padding: 3px 7px;
+  border: 1px solid rgb(37 35 31 / 13%);
+  border-radius: 999px;
+  color: #6f6a62;
+  background: rgb(255 255 255 / 35%);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dictionary-open output {
+  display: inline-grid;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 3px;
+  padding: 0 4px;
+  border-radius: 999px;
+  color: #fff;
+  background: #d9693f;
+  font-size: 10px;
+  place-items: center;
+}
+
+.dictionary-open:hover,
+.dictionary-chip:hover {
+  color: #d9693f;
+  border-color: rgb(217 105 63 / 28%);
+  background: rgb(255 255 255 / 60%);
+}
+
+.dictionary-chip::after {
+  margin-left: 5px;
+  color: #aaa297;
+  content: "×";
+}
+
+.dictionary-empty {
+  color: #aaa297;
+  font-weight: 500;
+}
+
+dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(560px, calc(100vh - 32px));
+  padding: 0;
+  border: 1px solid rgb(37 35 31 / 12%);
+  border-radius: 16px;
+  color: #25231f;
+  background: #f8f5ee;
+  box-shadow: 0 24px 70px rgb(37 35 31 / 28%);
+}
+
+dialog::backdrop {
+  background: rgb(37 35 31 / 38%);
+  backdrop-filter: blur(3px);
+}
+
+.dialog-card {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.dialog-heading h2,
+.dialog-heading p {
+  margin: 0;
+}
+
+.dialog-heading h2 {
+  font: 600 22px/1.2 Georgia, "Times New Roman", serif;
+}
+
+.dialog-heading p {
+  margin-top: 5px;
+  color: #7e786f;
+  font-size: 13px;
+}
+
+.dialog-close {
+  padding: 0;
+  border: 0;
+  color: #7e786f;
+  background: transparent;
+  font: 24px/1 sans-serif;
+  cursor: pointer;
+}
+
+.dictionary-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.dictionary-form input,
+.dictionary-form button {
+  min-height: 40px;
+  border: 1px solid rgb(37 35 31 / 15%);
+  border-radius: 9px;
+  font: 600 14px/1 system-ui, sans-serif;
+}
+
+.dictionary-form input {
+  min-width: 0;
+  padding: 0 12px;
+  outline: 0;
+  color: #25231f;
+  background: #fff;
+}
+
+.dictionary-form input:focus {
+  border-color: #d9693f;
+  box-shadow: 0 0 0 3px rgb(217 105 63 / 12%);
+}
+
+.dictionary-form button {
+  padding: 0 15px;
+  color: #fff;
+  border-color: #d9693f;
+  background: #d9693f;
+  cursor: pointer;
+}
+
+dialog .dictionary-list {
+  min-height: 30px;
+  align-items: flex-start;
+  overflow-y: auto;
 }
 
 .stepper {
