@@ -14,6 +14,7 @@ const MODEL_ROOT = join(PROJECT_ROOT, "offline-models", ...MODEL_ID.split("/"));
 const FILES = [
   { path: "config.json" },
   { path: "tokenizer.json" },
+  { path: "tokenizer_config.json" },
   {
     path: "onnx/model.onnx",
     sha256: "8fbea51ea711f2af382e88c833d9e288c6dc82ce5e98421ea61c058ce21a34cb",

@@ -18,9 +18,9 @@
     "start": "npm run build && electron .",
     "download:model": "node scripts/download-offline-model.mjs",
     "package": "npm run build && electron-builder",
-    "package:win": "npm run build && electron-builder --win portable --x64",
-    "package:mac": "npm run build && electron-builder --mac zip --arm64",
-    "package:linux": "npm run build && electron-builder --linux AppImage --x64"
+    "package:win": "npm run build && electron-builder --win portable --x64 --publish never",
+    "package:mac": "npm run build && electron-builder --mac zip --arm64 --publish never",
+    "package:linux": "npm run build && electron-builder --linux AppImage --x64 --publish never"
   },
   "devDependencies": {
     "@huggingface/transformers": "4.2.0",
