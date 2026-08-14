@@ -352,7 +352,7 @@ worker.addEventListener("message", (event) => {
     const value = Math.max(0, Math.min(100, message.progress));
     progress.classList.add("visible");
     progressBar.style.transform = `scaleX(${value / 100})`;
-    setStatus(`Descargando a Dora… ${Math.round(value)}%`, "loading");
+    setStatus(`Cargando a Dora… ${Math.round(value)}%`, "loading");
     return;
   }
 

@@ -26,13 +26,21 @@ function isInside(parent, candidate) {
 
 function registerAppProtocol() {
   const distRoot = path.join(app.getAppPath(), "dist");
+  const modelRoot = app.isPackaged
+    ? path.join(process.resourcesPath, "offline-models")
+    : path.join(app.getAppPath(), "offline-models");
 
   protocol.handle("app", (request) => {
     const requestUrl = new URL(request.url);
     const requestPath = decodeURIComponent(requestUrl.pathname).replace(/^\/+/, "") || "index.html";
-    const filePath = path.resolve(distRoot, requestPath);
+    const servesModel = requestPath.startsWith("offline-models/");
+    const root = servesModel ? modelRoot : distRoot;
+    const relativePath = servesModel
+      ? requestPath.slice("offline-models/".length)
+      : requestPath;
+    const filePath = path.resolve(root, relativePath);
 
-    if (filePath !== distRoot && !isInside(distRoot, filePath)) {
+    if (filePath === root || !isInside(root, filePath)) {
       return new Response("Not found", { status: 404 });
     }
 
@@ -41,6 +49,10 @@ function registerAppProtocol() {
 }
 
 function createWindow() {
+  const icon = app.isPackaged
+    ? path.join(process.resourcesPath, "icon.png")
+    : path.join(app.getAppPath(), "build", "icon.png");
+
   mainWindow = new BrowserWindow({
     width: 820,
     height: 460,
@@ -50,6 +62,7 @@ function createWindow() {
     autoHideMenuBar: true,
     show: false,
     title: "Carola Piola",
+    icon,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

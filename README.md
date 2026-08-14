@@ -10,7 +10,7 @@ La autocorrección opcional usa Hunspell con el diccionario español de Argentin
 
 El switch “Modo manual” desactiva el envío por cantidad de palabras y por cooldown. En ese modo, cada Enter encola todo el texto pendiente como una sola frase y agrega un salto de línea real al textarea. El modo elegido también persiste en `localStorage`.
 
-Una línea manual que comienza con `!` usa temporalmente el comportamiento automático, con la cantidad de palabras y el cooldown configurados. El marcador no se pronuncia ni cuenta como palabra. Enter encola lo que reste, crea la línea siguiente y restablece el modo manual.
+Una línea que comienza con `!` invierte temporalmente el modo elegido. En modo manual, esa línea usa el comportamiento automático con la cantidad de palabras y el cooldown configurados; en modo automático, esa línea espera a Enter como una línea manual. El marcador no se pronuncia ni cuenta como palabra. Enter encola lo que reste, crea la línea siguiente y restablece el modo global.
 
 ## Ejecutar
 
@@ -27,13 +27,16 @@ Para abrir una compilación local:
 npm start
 ```
 
-Para crear el instalador de tu plataforma:
+Para descargar el modelo offline y crear el paquete portable de una plataforma:
 
 ```bash
-npm run package
+npm run download:model
+npm run package:win    # Windows x64, .exe portable
+npm run package:mac    # macOS Apple Silicon, .zip con .app
+npm run package:linux  # Linux x64, AppImage
 ```
 
-Cada push a `main` compila y publica automáticamente la versión web mediante GitHub Pages.
+El workflow “Package desktop apps” compila los tres sistemas en sus runners nativos al ejecutarlo manualmente o al publicar un tag `v*`. Cada push a `main` sigue compilando y publicando automáticamente la versión web mediante GitHub Pages.
 
 ## Motor de voz
 
@@ -43,7 +46,7 @@ Cada push a `main` compila y publica automáticamente la versión web mediante G
 - Respaldo automático: WASM + Q4 (~305 MB) si WebGPU no está disponible
 - Frecuencia de audio: 24 kHz
 
-La primera ejecución descarga el modelo, el tokenizador y la voz. Los recursos quedan en la caché de Chromium para los siguientes arranques. La fonemización española se hace localmente con `ephone`/eSpeak-NG y la síntesis también ocurre dentro de la app; una vez que los recursos estén en caché, no hace falta una conexión.
+La versión web descarga el modelo, el tokenizador y la voz la primera vez y los conserva en la caché de Chromium. Los paquetes de escritorio incluyen FP32, Q4, el tokenizador y Dora: no descargan el modelo al arrancar y funcionan sin conexión. La fonemización española se hace localmente con `ephone`/eSpeak-NG y la síntesis ocurre dentro de la app.
 
 `ephone` y eSpeak-NG se distribuyen bajo GPL-3.0-or-later. El diccionario `dictionary-es-ar` conserva sus opciones GPL-3.0/LGPL-3.0/MPL-1.1. El empaquetado incluye copias de estas licencias en `resources/licenses`. Kokoro y sus pesos ONNX usan Apache-2.0.
 

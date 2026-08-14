@@ -1,0 +1,65 @@
+name: Package desktop apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            command: package:win
+            artifact: Carola-Piola-Windows-x64
+            files: release/*.exe
+          - runner: macos-14
+            command: package:mac
+            artifact: Carola-Piola-macOS-arm64
+            files: release/*.zip
+          - runner: ubuntu-latest
+            command: package:linux
+            artifact: Carola-Piola-Linux-x64
+            files: release/*.AppImage
+
+    runs-on: ${{ matrix.runner }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Restore offline model cache
+        uses: actions/cache@v5
+        with:
+          path: offline-models
+          key: kokoro-82m-v1-fp32-q4-dora
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download bundled Kokoro model
+        run: npm run download:model
+
+      - name: Package
+        run: npm run ${{ matrix.command }}
+
+      - name: Upload portable app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          compression-level: 0

@@ -1,10 +1,14 @@
-import { AutoTokenizer, StyleTextToSpeech2Model, Tensor } from "@huggingface/transformers";
+import { AutoTokenizer, env, StyleTextToSpeech2Model, Tensor } from "@huggingface/transformers";
 import { trimEdgeSilence } from "./audio-utils.js";
 import { phonemizeSpanish } from "./spanish-phonemizer.js";
 
 const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
 const VOICE_ID = "ef_dora";
-const VOICE_URL = `https://huggingface.co/${MODEL_ID}/resolve/main/voices/${VOICE_ID}.bin`;
+const IS_PACKAGED_DESKTOP = self.location.protocol === "app:";
+const MODEL_BASE_URL = IS_PACKAGED_DESKTOP
+  ? `app://bundle/offline-models/${MODEL_ID}`
+  : `https://huggingface.co/${MODEL_ID}/resolve/main`;
+const VOICE_URL = `${MODEL_BASE_URL}/voices/${VOICE_ID}.bin`;
 const SAMPLE_RATE = 24_000;
 const STYLE_DIMENSION = 256;
 const MAX_STYLE_INDEX = 509;
@@ -18,11 +22,26 @@ let precision = "fp32";
 let processing = false;
 const jobs = [];
 
+if (IS_PACKAGED_DESKTOP) {
+  env.allowLocalModels = true;
+  env.allowRemoteModels = false;
+  env.localModelPath = "app://bundle/offline-models/";
+  env.useBrowserCache = false;
+}
+
 function post(type, payload = {}, transfer = []) {
   self.postMessage({ type, ...payload }, transfer);
 }
 
 async function fetchVoice() {
+  if (IS_PACKAGED_DESKTOP) {
+    const response = await fetch(VOICE_URL);
+    if (!response.ok) {
+      throw new Error(`No se pudo cargar la voz Dora incluida (${response.status}).`);
+    }
+    return new Float32Array(await response.arrayBuffer());
+  }
+
   let response;
   try {
     const cache = await caches.open("carola-piola-assets-v1");
@@ -54,9 +73,13 @@ async function loadFor(device, dtype) {
     StyleTextToSpeech2Model.from_pretrained(MODEL_ID, {
       device,
       dtype,
+      local_files_only: IS_PACKAGED_DESKTOP,
       progress_callback: reportProgress,
     }),
-    AutoTokenizer.from_pretrained(MODEL_ID, { progress_callback: reportProgress }),
+    AutoTokenizer.from_pretrained(MODEL_ID, {
+      local_files_only: IS_PACKAGED_DESKTOP,
+      progress_callback: reportProgress,
+    }),
     fetchVoice(),
   ]);
 
