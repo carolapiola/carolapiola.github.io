@@ -86,21 +86,20 @@ let audioContext;
 let composing = false;
 let previousText = textarea.value;
 let compositionStartText = previousText;
-let manualLineAutomatic = false;
+let lineModeInverted = false;
 
 function speechValue() {
   return textarea.value.replace(/(^|\n)!/gu, "$1 ");
 }
 
-function detectManualLineOverride() {
-  if (!manualMode || manualLineAutomatic) return;
+function detectLineModeOverride() {
   const lineStart = textarea.value.lastIndexOf("\n") + 1;
-  manualLineAutomatic = textarea.value[lineStart] === "!";
+  lineModeInverted = textarea.value[lineStart] === "!";
 }
 
 function updateChunker() {
   chunker.update(speechValue(), {
-    automatic: !manualMode || manualLineAutomatic,
+    automatic: lineModeInverted ? manualMode : !manualMode,
   });
 }
 
@@ -213,7 +212,7 @@ textarea.addEventListener("input", () => {
   }
   autocorrectRange(previousText);
   previousText = textarea.value;
-  detectManualLineOverride();
+  detectLineModeOverride();
   updateChunker();
 });
 
@@ -226,7 +225,7 @@ textarea.addEventListener("compositionend", () => {
   composing = false;
   autocorrectRange(compositionStartText);
   previousText = textarea.value;
-  detectManualLineOverride();
+  detectLineModeOverride();
   updateChunker();
 });
 
@@ -310,8 +309,7 @@ autocorrectToggle.addEventListener("click", () => {
 
 manualModeToggle.addEventListener("click", () => {
   manualMode = !manualMode;
-  manualLineAutomatic = false;
-  detectManualLineOverride();
+  detectLineModeOverride();
   updateChunker();
   persistPreferences();
   renderSettings();
@@ -339,10 +337,9 @@ textarea.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.isComposing) {
     autocorrectRange(previousText, { forceLast: true });
     previousText = textarea.value;
-    detectManualLineOverride();
+    detectLineModeOverride();
     updateChunker();
     chunker.flush();
-    if (manualMode) manualLineAutomatic = false;
   } else if (event.key === "Tab") {
     event.preventDefault();
   }
